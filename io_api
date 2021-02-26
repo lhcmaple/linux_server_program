@@ -1,0 +1,9 @@
+unistd.h:
+    pipe
+    dup,dup2
+    readv,writev
+    sendfile
+    mmap,munmap
+    splice,tee
+    fcntl
+    

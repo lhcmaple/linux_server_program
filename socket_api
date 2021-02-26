@@ -1,0 +1,29 @@
+字节序转换
+netinet/in.h:
+    htonl,htons,ntohl,ntohs
+
+socket地址
+bits/socket.h:
+    sockaddr
+netinet/in.h:
+    sockaddr_in
+
+IP地址转换函数
+arpa/inet.h:
+    inet_addr,inet_aton,inet_ntoa
+
+套接字socket
+sys/types.h,sys/socket.h:
+    socket,bind,listen,accept,connect,close
+
+数据读写
+sys/types.h,sys/socket.h:
+    recv,send,recvfrom,sendto,recvmsg,sendmsg
+
+socket选项,应在listen或connect之前设置
+sys/socket.h:
+    getsockopt,setsockopt
+
+网络信息
+netdb.h:
+    gethostbyname,gethostbyaddr,getservbyname,getservbyport,getaddrinfo,getnameinfo
