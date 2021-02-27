@@ -5,3 +5,6 @@ lock_queue/lock_queue.o:lock_queue/lock_queue.cpp
 
 thead_pool/thread_pool.o:thread_pool/thread_pool.cpp
 	g++ -c thread_pool/thread_pool.cpp -o thread/pool thread_pool.o -std=c++11
+
+clean:
+	rm lock_queue/lock_queue.o thread_pool/thread_pool.o
