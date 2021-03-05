@@ -1,8 +1,23 @@
-#ifndef _THREAD_POOL
-#define _THREAD_POOL
+#ifndef _THREAD_POOL_H
+#define _THREAD_POOL_H
 
-template<typename> class _thread_pool;
+#include <pthread.h>
+#include <vector>
 
-#define thread_pool _thread_pool
+#include "../lock_queue/lock_queue.h"
+
+using std::vector;
+
+template<typename T> static void *_run(void *);
+
+template<typename TASK,int NPOOL> class thread_pool{
+private:
+    lock_queue<TASK> qtask;
+    vector<pthread_t> pool;
+public:
+    thread_pool();
+
+    template<typename T> friend void *_run(void *);
+};
 
 #endif
