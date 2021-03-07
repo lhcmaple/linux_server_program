@@ -10,6 +10,7 @@ HTTP_STATUS http_parser::parse(int _fd)
     start=0;
     line_start=0;
     end=0;
+    data_len=0;
     http_status=REQUEST_STATUS;
     line_status=LINE_OPEN;
 
