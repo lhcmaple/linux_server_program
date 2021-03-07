@@ -47,6 +47,7 @@ HTTP_STATUS http_parser::parse(int _fd)
                 }
                 break;
             case DATA_STATUS:
+                http_status=data_parse();
                 break;
         }
     }
@@ -97,18 +98,14 @@ HTTP_STATUS http_parser::request_parse()
         method=GET;
     else
         method=UNKNOWN;
-    
-    while(index<line_end&&cache[index]==' ') index++;
-    if(index==line_end)
-        return ERROR_STATUS;
-    line_start=index;
+
+    line_start=++index;
     while(index<line_end&&cache[index]!=' ') index++;
     if(index==line_end)
         return ERROR_STATUS;
     uri.assign(cache+line_start,index-line_start);
 
-    while(index<line_end&&cache[index]==' ') index++;
-    if(index==line_end)
+    if(++index==line_end)
         return ERROR_STATUS;
     version.assign(cache+index,line_end-index);
 
@@ -126,16 +123,33 @@ HTTP_STATUS http_parser::header_parse()
 
     header htmp;
     int index=line_start;
-    while(index<line_end&&cache[index]!=' '&&cache[index]!=':') index++;
+    while(index<line_end&&cache[index]!=':') index++;
     if(index==line_end)
         return ERROR_STATUS;
     htmp.property.assign(cache+line_start,index-line_start);
     
     while(index<line_end&&(cache[index]==' '||cache[index]==':')) index++;
-    if(index==line_end)
-        return ERROR_STATUS;
-    htmp.value.assign(cache+index,line_end-index);
-
+    if(index!=line_end)
+        htmp.value.assign(cache+index,line_end-index);
     line_start=start;
+
+    if(htmp.property==string("Contents-Length")&&!htmp.value.empty())
+        data_len=stoi(htmp.value);
     return HEADER_STATUS;
+}
+
+HTTP_STATUS http_parser::data_parse()
+{
+    if(data_len!=0)
+    {
+        while(end<start+data_len)
+        {
+            int len=recv(fd,cache+end,data_len+start-end,0);
+            if(len<0)
+                return ERROR_STATUS;
+            end+=len;
+        }
+        data.assign(cache+start,data_len);
+    }
+    return DONE_STATUS;
 }
