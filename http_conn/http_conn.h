@@ -41,12 +41,12 @@ private:
     int line_end;
     int start;
     int end;
-    int data_len;
-    string data;
     HTTP_STATUS http_status;
     LINE_STATUS line_status;
     int fd;
 public:
+    int data_len;
+    string data;
     REQUEST_TYPE method;
     string uri;
     string version;

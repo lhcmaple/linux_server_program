@@ -134,8 +134,9 @@ HTTP_STATUS http_parser::header_parse()
         htmp.value.assign(cache+index,line_end-index);
     line_start=start;
 
-    if(htmp.property==string("Contents-Length")&&!htmp.value.empty())
+    if(htmp.property==string("Content-Length")&&!htmp.value.empty())
         data_len=stoi(htmp.value);
+    headers.push_back(htmp);
     return HEADER_STATUS;
 }
 
