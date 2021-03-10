@@ -26,10 +26,17 @@ template<typename TASK,int NPOOL> void *_run(void *arg)
             task=tpool->qtask.top();
             tpool->qtask.pop();
             tpool->qtask.unlock();
-            task->process();
+            task.process();
         }
         else
             tpool->qtask.unlock();
     }
     return NULL;
+}
+
+template<typename TASK,int NPOOL> void thread_pool<TASK,NPOOL>::push(TASK t)
+{
+    qtask.lock();
+    qtask.push(t);
+    qtask.unlock();
 }

@@ -1,4 +1,6 @@
-all:lock_queue/lock_queue.o thread_pool/thread_pool.o mysql_pool/mysql_pool.o http_conn/http_conn.o
+all:lock_queue/lock_queue.o thread_pool/thread_pool.o mysql_pool/mysql_pool.o http_conn/http_conn.o server/server.o
+	g++ -c main.cpp -o main.o -std=c++11
+	g++ lock_queue/lock_queue.o thread_pool/thread_pool.o mysql_pool/mysql_pool.o server/server.o main.o -o webserver -std=c++11
 
 lock_queue/lock_queue.o:lock_queue/lock_queue.cpp
 	g++ -c lock_queue/lock_queue.cpp -o lock_queue/lock_queue.o -std=c++11
@@ -11,6 +13,9 @@ http_conn/http_conn.o:http_conn/http_conn.cpp
 
 mysql_pool/mysql_pool.o:mysql_pool/mysql_pool.cpp
 	g++ -c mysql_pool/mysql_pool.cpp -o mysql_pool/mysql_pool.o -std=c++11 `mysql_config --cflags --libs`
+
+server/server.o:server/server.cpp 
+	g++ -c server/server.cpp -o server/server.o -std=c++11
 
 clean:
 	rm lock_queue/lock_queue.o thread_pool/thread_pool.o mysql_pool/mysql_pool.o

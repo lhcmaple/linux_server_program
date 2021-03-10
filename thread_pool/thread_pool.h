@@ -16,7 +16,7 @@ private:
     vector<pthread_t> pool;
 public:
     thread_pool();
-
+    void push(TASK t);
     template<typename T> friend void *_run(void *);
 };
 
