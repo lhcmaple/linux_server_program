@@ -11,6 +11,7 @@
 
 #include "../thread_pool/thread_pool.h"
 #include "../http_conn/http_conn.h"
+#include "../mysql_pool/mysql_pool.h"
 
 #define N_BACKLOG 64
 #define N_EPOLL_SIZE 1000
@@ -24,6 +25,7 @@ public:
     task(int _fd=0):fd(_fd){
     };
     void process();
+    void response(char *,int);
 };
 
 class server{

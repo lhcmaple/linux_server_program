@@ -9,27 +9,101 @@ epoll_event events[N_EVENT_NUMBER];
 void task::process()
 {
     http_parser hp;
-    hp.parse(fd);
-    if(hp.method==GET)
+    char cache[512];
+    if(hp.parse(fd)==DONE_STATUS)
     {
-        int filefd=open((string("./root")+hp.uri).c_str(),O_RDONLY);
-        char cache[512];
-        sprintf(cache,"HTTP/1.1 200 OK\r\nContent-Length: %ld\r\nConnections: Close\r\n\r\n",lseek(filefd,0,SEEK_END));
-        lseek(filefd,0,SEEK_SET);
-        int len;
-        while((len=read(filefd,cache,100))>0)
+        switch(hp.method)
         {
-            int slen=0;
-            while(len>0&&(slen=send(fd,cache,len,0)>0))
-            {
-                len-=slen;
-            }
-            if(slen<0)
+            case GET:
+                if(hp.uri==string("/")||hp.uri==string("/index.html"))
+                {
+                    int filefd=open("./root/index.html",O_RDONLY);
+                    if(filefd<0)
+                        break;
+                    sprintf(cache,"HTTP/1.1 200 OK\r\nContent-Length: %ld\r\nConnections: Close\r\n\r\n",lseek(filefd,0,SEEK_END));
+                    response(cache,filefd);
+                }
+                else
+                {
+                    int filefd=open("./root/404.html",O_RDONLY);
+                    if(filefd<0)
+                        break;
+                    sprintf(cache,"HTTP/1.1 404 NOT FOUND\r\nContent-Length: %ld\r\nConnections: Close\r\n\r\n",lseek(filefd,0,SEEK_END));
+                    response(cache,filefd);
+                }
+                break;
+            case POST:
+                MYSQL *con=mysql_pool::get_instance()->pop_connection();
+                if(hp.type==string("register"))
+                {
+                    sprintf(cache,"insert into userinfo values(%s,%s);",hp.user.c_str(),hp.password.c_str());
+                    
+                }
+                else if(hp.type==string("recv"))
+                {
+                    sprintf(cache,"select * from userinfo where username='%s'",hp.user.c_str());
+                    mysql_query(con,cache);
+
+                }
+                else if(hp.type==string("send"))
+                {
+                    sprintf(cache,"select * from userinfo where username='%s'",hp.user.c_str());
+                    if(mysql_query(con,cache) != 0)
+                        break;
+                    MYSQL_RES *res=mysql_store_result(con);
+                    if(mysql_num_rows(res)==0)
+                    {
+                        int filefd=open("./root/infoError.html",O_RDONLY);
+                        if(filefd<0)
+                            break;
+                        sprintf(cache,"HTTP/1.1 200 OK\r\nContent-Length: %ld\r\nConnections: Close\r\n\r\n",lseek(filefd,0,SEEK_END));
+                        response(cache,filefd);
+                        break;
+                    }
+                }
+                else
+                {
+                    int filefd=open("./root/typeError.html",O_RDONLY);
+                    if(filefd<0)
+                        break;
+                    sprintf(cache,"HTTP/1.1 200 OK\r\nContent-Length: %ld\r\nConnections: Close\r\n\r\n",lseek(filefd,0,SEEK_END));
+                    response(cache,filefd);
+                }
+                mysql_pool::get_instance()->push_connection(con);
+                break;
+            default:
                 break;
         }
-        close(filefd);
     }
     close(fd);
+}
+
+void task::response(char *cache,int filefd)
+{
+    int slen,len=strlen(cache);
+    while(len>0&&(slen=send(fd,cache,len,0))>0)
+    {
+        len-=slen;
+    }
+    if(slen<0)
+    {
+        close(filefd);
+        return;
+    }
+    lseek(filefd,0,SEEK_SET);
+    while((len=read(filefd,cache,512))>0)
+    {
+        cache[511]=0;
+        slen=0;
+        while( len > 0 &&
+            ( slen = send(fd,cache,len,0) ) > 0 )
+        {
+            len-=slen;
+        }
+        if(slen<0)
+            break;
+    }
+    close(filefd);
 }
 
 void pipe_handler(int sig)

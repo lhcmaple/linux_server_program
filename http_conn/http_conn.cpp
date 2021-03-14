@@ -97,6 +97,8 @@ HTTP_STATUS http_parser::request_parse()
     string tmp(cache+line_start,index-line_start);
     if(tmp==string("GET"))
         method=GET;
+    else if(tmp==string("POST"))
+        method=POST;
     else
         method=UNKNOWN;
 

@@ -9,6 +9,7 @@ mysql_pool::mysql_pool()
 {
     assert(0==mysql_library_init(0,NULL,NULL));
     pthread_mutex_init(&mutex,NULL);
+    pthread_cond_init(&cond,NULL);
 }
 
 mysql_pool::~mysql_pool()
@@ -18,6 +19,8 @@ mysql_pool::~mysql_pool()
         mysql_close(connect_pool.back());
         connect_pool.pop_back();
     }
+    pthread_mutex_destroy(&mutex);
+    pthread_cond_destroy(&cond);
     mysql_library_end();
 }
 
@@ -44,22 +47,22 @@ void mysql_pool::init(const string host,const string user,
     }
 }
 
-MYSQL *mysql_pool::get_connection()
+MYSQL *mysql_pool::pop_connection()
 {
     MYSQL *res=NULL;
     pthread_mutex_lock(&mutex);
-    if(!connect_pool.empty())
-    {
-        res=connect_pool.back();
-        connect_pool.pop_back();
-    }
+    while(connect_pool.empty())
+        pthread_cond_wait(&cond,&mutex);
+    res=connect_pool.back();
+    connect_pool.pop_back();
     pthread_mutex_unlock(&mutex);
     return res;
 }
 
-void mysql_pool::return_connection(MYSQL *con)
+void mysql_pool::push_connection(MYSQL *con)
 {
     pthread_mutex_lock(&mutex);
     connect_pool.push_back(con);
     pthread_mutex_unlock(&mutex);
+    pthread_cond_signal(&cond);
 }

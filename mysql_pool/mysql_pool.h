@@ -16,13 +16,14 @@ class mysql_pool{
 private:
     list<MYSQL *> connect_pool;
     pthread_mutex_t mutex;
+    pthread_cond_t cond;
 private:
     mysql_pool();
 public:
     void init(const string _host,const string _user,
         const string &_passwd,const string &_db_name,int _port);
-    MYSQL *get_connection();
-    void return_connection(MYSQL *con);
+    MYSQL *pop_connection();
+    void push_connection(MYSQL *con);
     ~mysql_pool();
     static mysql_pool *get_instance();
 };
