@@ -7,6 +7,8 @@
 #include <assert.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <signal.h>
+
 #include "../thread_pool/thread_pool.h"
 #include "../http_conn/http_conn.h"
 
@@ -15,10 +17,20 @@
 #define N_EVENT_NUMBER N_EPOLL_SIZE
 #define N_THREAD_POOL_SIZE 100
 
+class task{
+private:
+    int fd;
+public:
+    task(int _fd=0):fd(_fd){
+    };
+    void process();
+};
+
 class server{
 private:
     int listenfd;
     int epollfd;
+    thread_pool<task,N_THREAD_POOL_SIZE> tpool;
 public:
     void run(const char *ipaddr,short port);
 };

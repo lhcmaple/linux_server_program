@@ -4,6 +4,7 @@
 #include <vector>
 #include <string>
 #include <sys/socket.h>
+#include <cstring>
 
 using std::string;
 using std::vector;
@@ -12,21 +13,22 @@ using std::vector;
 
 enum HTTP_STATUS{
     REQUEST_STATUS=0,
-    HEADER_STATUS=1,
-    DATA_STATUS=2,
-    DONE_STATUS=3,
-    ERROR_STATUS=4
+    HEADER_STATUS,
+    DATA_STATUS,
+    DONE_STATUS,
+    ERROR_STATUS
 };
 
 enum LINE_STATUS{
     LINE_CLOSE=0,
-    LINE_OPEN=1,
-    LINE_ERROR=2
+    LINE_OPEN,
+    LINE_ERROR
 };
 
 enum REQUEST_TYPE{
     GET=0,
-    UNKNOWN=1
+    POST,
+    UNKNOWN
 };
 
 struct header{
@@ -44,13 +46,17 @@ private:
     HTTP_STATUS http_status;
     LINE_STATUS line_status;
     int fd;
-public:
     int data_len;
-    string data;
+public:
     REQUEST_TYPE method;
     string uri;
     string version;
     vector<header> headers;
+
+    string user;
+    string password;
+    string type;
+    string data;
 public:
     HTTP_STATUS parse(int _fd);
     LINE_STATUS line_parse();

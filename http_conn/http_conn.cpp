@@ -65,7 +65,7 @@ LINE_STATUS http_parser::line_parse()
             return LINE_ERROR;
         }
         int len=recv(fd,cache+end,CACHE_SIZE-end,0);
-        if(len<0)
+        if(len<=0)
         {
             http_status=ERROR_STATUS;
             return LINE_ERROR;

@@ -6,15 +6,6 @@
 
 epoll_event events[N_EVENT_NUMBER];
 
-class task{
-private:
-    int fd;
-public:
-    task(int _fd):fd(_fd){
-    };
-    void process();
-};
-
 void task::process()
 {
     http_parser hp;
@@ -22,19 +13,29 @@ void task::process()
     if(hp.method==GET)
     {
         int filefd=open((string("./root")+hp.uri).c_str(),O_RDONLY);
-        char cache[100];
-        sprintf(cache,"HTTP/1.1 200 OK\r\nContent-Length: %d\r\nConnections: Close\r\n\r\n",lseek(filefd,0,SEEK_END));
+        char cache[512];
+        sprintf(cache,"HTTP/1.1 200 OK\r\nContent-Length: %ld\r\nConnections: Close\r\n\r\n",lseek(filefd,0,SEEK_END));
         lseek(filefd,0,SEEK_SET);
         int len;
         while((len=read(filefd,cache,100))>0)
         {
-            send(fd,cache,len,0);
+            int slen=0;
+            while(len>0&&(slen=send(fd,cache,len,0)>0))
+            {
+                len-=slen;
+            }
+            if(slen<0)
+                break;
         }
+        close(filefd);
     }
     close(fd);
 }
 
-thread_pool<task,N_THREAD_POOL_SIZE> tpool;
+void pipe_handler(int sig)
+{
+
+}
 
 static int Socket(int domain,int type,int protocal,const char *ipaddr,short port)
 {
@@ -61,7 +62,13 @@ static int setnonblocking(int fd)
 
 void server::run(const char *ipaddr,short port)
 {
+    struct sigaction act;
+    memset(&act,0,sizeof(act));
+    act.sa_handler=&pipe_handler;
+    sigaction(SIGPIPE,&act,NULL);
+
     listenfd=Socket(PF_INET,SOCK_STREAM,0,ipaddr,port);
+    setnonblocking(listenfd);
     assert(
         0==listen(listenfd,N_BACKLOG)
     );
@@ -69,6 +76,7 @@ void server::run(const char *ipaddr,short port)
     epollfd=epoll_create(N_EPOLL_SIZE);
     assert(epollfd>0);
     epoll_event levent;
+    memset(&levent,0,sizeof(levent));
     levent.events|=EPOLLIN;
     levent.data.fd=listenfd;
     epoll_ctl(epollfd,EPOLL_CTL_ADD,listenfd,&levent);
@@ -83,12 +91,17 @@ void server::run(const char *ipaddr,short port)
             if(sockfd==listenfd)
             {
                 epoll_event tmp_event;
-                tmp_event.data.fd=accept(listenfd,NULL,NULL);
+                memset(&tmp_event,0,sizeof(tmp_event));
                 tmp_event.events|=EPOLLIN;
-                epoll_ctl(epollfd,EPOLL_CTL_ADD,tmp_event.data.fd,&tmp_event);
+                while((tmp_event.data.fd=accept(listenfd,NULL,NULL))>0)
+                {
+                    epoll_ctl(epollfd,EPOLL_CTL_ADD,tmp_event.data.fd,&tmp_event);
+                }
+                assert(errno==EWOULDBLOCK||errno==EAGAIN);
             }
             else
             {
+                epoll_ctl(epollfd,EPOLL_CTL_DEL,sockfd,&events[i]);
                 tpool.push(task(sockfd));
             }
         }
