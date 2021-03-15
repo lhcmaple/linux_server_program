@@ -44,7 +44,17 @@ void task::process()
                 {
                     sprintf(cache,"select * from userinfo where username='%s'",hp.user.c_str());
                     mysql_query(con,cache);
-
+                    MYSQL_RES *res=mysql_store_result(con);
+                    if(mysql_num_rows(res)==0)
+                    {
+                        int filefd=open("./root/infoError.html",O_RDONLY);
+                        if(filefd<0)
+                            break;
+                        sprintf(cache,"HTTP/1.1 200 OK\r\nContent-Length: %ld\r\nConnections: Close\r\n\r\n",lseek(filefd,0,SEEK_END));
+                        response(cache,filefd);
+                        break;
+                    }
+                    stoi(hp.data);
                 }
                 else if(hp.type==string("send"))
                 {
