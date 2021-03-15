@@ -39,16 +39,11 @@ template<typename TASK,int NPOOL> void *_run(void *arg)
     while(true)
     {
         tpool->qtask.lock_wait();
-        if(!tpool->qtask.empty())
-        {
             // printf("thread %ld\n",pthread_self());
-            task=tpool->qtask.top();
-            tpool->qtask.pop();
-            tpool->qtask.unlock();
-            task.process();
-        }
-        else
-            tpool->qtask.unlock();
+        task=tpool->qtask.top();
+        tpool->qtask.pop();
+        tpool->qtask.unlock();
+        task.process();
     }
     return NULL;
 }

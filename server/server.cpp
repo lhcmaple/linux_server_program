@@ -10,6 +10,7 @@ void task::process()
 {
     http_parser hp;
     char cache[512];
+    MYSQL *con=NULL;
     if(hp.parse(fd)==DONE_STATUS)
     {
         switch(hp.method)
@@ -33,7 +34,7 @@ void task::process()
                 }
                 break;
             case POST:
-                MYSQL *con=mysql_pool::get_instance()->pop_connection();
+                con=mysql_pool::get_instance()->pop_connection();
                 if(hp.type==string("register"))
                 {
                     sprintf(cache,"insert into userinfo values(%s,%s);",hp.user.c_str(),hp.password.c_str());

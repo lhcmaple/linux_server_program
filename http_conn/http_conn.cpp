@@ -146,14 +146,28 @@ HTTP_STATUS http_parser::data_parse()
 {
     if(data_len!=0)
     {
+        if(start+data_len>=CACHE_SIZE)
+            return ERROR_STATUS;
         while(end<start+data_len)
         {
             int len=recv(fd,cache+end,data_len+start-end,0);
-            if(len<0)
+            if(len<=0)
                 return ERROR_STATUS;
             end+=len;
         }
-        data.assign(cache+start,data_len);
+        cache[end]='\0';
+        char *puser=strstr(cache+start,"user"),
+            *ppasswd=strstr(cache+start,"password"),
+            *ptype=strstr(cache+start,"type"),
+            *pdata=strstr(cache+start,"data");
+        if(puser==NULL||ppasswd==NULL||ptype==NULL||pdata==NULL)
+            return ERROR_STATUS;
+        if( !( puser<ppasswd && ppasswd<ptype &&ptype<pdata ) )
+            return ERROR_STATUS;
+        user.assign(puser+5,ppasswd-1);
+        password.assign(ppasswd+9,ptype-1);
+        type.assign(ptype+5,pdata-1);
+        data.assign(pdata+5,cache+end);
     }
     return DONE_STATUS;
 }
