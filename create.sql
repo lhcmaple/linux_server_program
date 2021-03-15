@@ -11,9 +11,8 @@ create table userinfo(
 create table messages(
     username varchar(50) not null references userinfo(username),
     content varchar(512) not null,
-    mtype varchar(10) not null,
-    atime date not null,
-    check(mtype in('message','file'))
+    peer varchar(50) not null references userinfo(username),
+    atime date not null
 );
 desc userinfo;
 desc messages;
