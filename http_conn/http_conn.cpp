@@ -159,14 +159,16 @@ HTTP_STATUS http_parser::data_parse()
         char *puser=strstr(cache+start,"user"),
             *ppasswd=strstr(cache+start,"password"),
             *ptype=strstr(cache+start,"type"),
+            *ppeer=strstr(cache+start,"peer"),
             *pdata=strstr(cache+start,"data");
-        if(puser==NULL||ppasswd==NULL||ptype==NULL||pdata==NULL)
+        if(puser==NULL||ppasswd==NULL||ptype==NULL||ppeer==NULL||pdata==NULL)
             return ERROR_STATUS;
-        if( !( puser<ppasswd && ppasswd<ptype &&ptype<pdata ) )
+        if( !( puser<ppasswd && ppasswd<ptype && ptype<ppeer && ppeer<pdata ) )
             return ERROR_STATUS;
         user.assign(puser+5,ppasswd-1);
         password.assign(ppasswd+9,ptype-1);
-        type.assign(ptype+5,pdata-1);
+        type.assign(ptype+5,ppeer-1);
+        peer.assign(ppeer+5,pdata-1);
         data.assign(pdata+5,cache+end);
     }
     return DONE_STATUS;

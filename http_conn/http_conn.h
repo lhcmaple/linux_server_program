@@ -56,6 +56,7 @@ public:
     string user;
     string password;
     string type;
+    string peer;
     string data;
 public:
     HTTP_STATUS parse(int _fd);
