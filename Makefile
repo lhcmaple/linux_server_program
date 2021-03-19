@@ -1,5 +1,5 @@
 all:http_conn/http_conn.cpp mysql_pool/mysql_pool.cpp server/server.cpp main.cpp
-	g++ $^ -o webserver -std=c++11 `mysql_config --cflags --libs` -lpthread
+	g++ -g $^ -o webserver -std=c++11 `mysql_config --cflags --libs` -lpthread
 
 clean:
 	rm -rf webserver test.out

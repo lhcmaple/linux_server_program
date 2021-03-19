@@ -6,10 +6,23 @@
 
 epoll_event events[N_EVENT_NUMBER];
 
+void printerror(int error)
+{
+    switch(error)
+    {
+        case CR_COMMANDS_OUT_OF_SYNC:printf("CR_COMMANDS_OUT_OF_SYNC\n");break;
+        case CR_SERVER_GONE_ERROR:printf("CR_SERVER_GONE_ERROR\n");break;
+        case CR_SERVER_LOST:printf("CR_SERVER_LOST\n");break;
+        case CR_UNKNOWN_ERROR:printf("CR_UNKNOWN_ERROR\n");break;
+        // default:
+            // printf("123\n");
+    }
+}
+
 void task::process()
 {
     http_parser hp;
-    char cache[512];
+    char cache[4096];
     MYSQL *con=NULL;
     if(hp.parse(fd)==DONE_STATUS)
     {
@@ -37,15 +50,33 @@ void task::process()
                 con=mysql_pool::get_instance()->pop_connection();
                 if(hp.type==string("register"))
                 {
-                    sprintf(cache,"insert into userinfo values(%s,%s);",hp.user.c_str(),hp.password.c_str());
-                    
+                    sprintf(cache,"insert into userinfo values('%s','%s')",hp.user.c_str(),hp.password.c_str());
+                    if(mysql_query(con,cache)!=0)
+                    {
+                        int filefd=open("./root/registerError.html",O_RDONLY);
+                        if(filefd<0)
+                            break;
+                        sprintf(cache,"HTTP/1.1 200 OK\r\nContent-Length: %ld\r\nConnections: Close\r\n\r\n",lseek(filefd,0,SEEK_END));
+                        response(cache,filefd);
+                        break;
+                    }
+                    int filefd=open("./root/registerSuccess.html",O_RDONLY);
+                    if(filefd<0)
+                        break;
+                    sprintf(cache,"HTTP/1.1 200 OK\r\nContent-Length: %ld\r\nConnections: Close\r\n\r\n",lseek(filefd,0,SEEK_END));
+                    response(cache,filefd);
+                    break;
                 }
                 else if(hp.type==string("recv"))
                 {
                     sprintf(cache,"select * from userinfo where username='%s'",hp.user.c_str());
-                    mysql_query(con,cache);
+                    if(mysql_query(con,cache)!=0)
+                        break;
                     MYSQL_RES *res=mysql_store_result(con);
-                    if(mysql_num_rows(res)==0)
+                    MYSQL_ROW row=mysql_fetch_row(res);
+                    if(res==NULL)
+                        break;
+                    if(row==NULL||string(row[1])!=hp.password)//用户不存在
                     {
                         int filefd=open("./root/infoError.html",O_RDONLY);
                         if(filefd<0)
@@ -54,15 +85,61 @@ void task::process()
                         response(cache,filefd);
                         break;
                     }
-                    stoi(hp.data);
+
+                    mysql_free_result(res);
+                    if(stoi(hp.data)==0)
+                    {
+                        int filefd=open("./root/recvError.html",O_RDONLY);
+                        if(filefd<0)
+                            break;
+                        sprintf(cache,"HTTP/1.1 200 OK\r\nContent-Length: %ld\r\nConnections: Close\r\n\r\n",lseek(filefd,0,SEEK_END));
+                        response(cache,filefd);
+                        break;
+                    }
+                    
+                    sprintf(cache,"select content, peer, atime from messages " \
+                    "where username='%s' order by atime desc limit %d",
+                    hp.user.c_str(),stoi(hp.data));
+                    if(mysql_query(con,cache)!=0)
+                    {
+                        break;
+                    }
+                    res=mysql_store_result(con);
+                    if(res==NULL)
+                        break;
+                    cache[0]='\0';
+                    while(row=mysql_fetch_row(res))
+                    {
+                        sprintf(cache+strlen(cache),"<div align=\"center\">%s %s : %s</div><br/>",
+                        row[2],row[1],row[0]);
+                    }
+                    int filefd=open("./root/recvSuccess.html",O_RDONLY);
+                    if(filefd<0)
+                        break;
+                    sprintf(cache,"HTTP/1.1 200 OK\r\nContent-Length: %ld\r\nConnections: Close\r\n\r\n",lseek(filefd,0,SEEK_END)+strlen(cache));
+                    response(cache,filefd);
+                    filefd=open("./root/recvSuccess_.html",O_RDONLY);
+                    if(filefd<0)
+                        break;
+                    mysql_data_seek(res,0);
+                    cache[0]='\0';
+                    while(row=mysql_fetch_row(res))
+                    {
+                        sprintf(cache+strlen(cache),"<div align=\"center\">%s %s : %s</div><br/>",
+                        row[2],row[1],row[0]);
+                    }
+                    response(cache,filefd);
+                    break;
                 }
                 else if(hp.type==string("send"))
                 {
-                    sprintf(cache,"select * from userinfo where username='%s'",hp.user.c_str());
+                    sprintf(cache,"select * from userinfo where username='%s'",
+                    hp.user.c_str());
                     if(mysql_query(con,cache) != 0)
                         break;
                     MYSQL_RES *res=mysql_store_result(con);
-                    if(mysql_num_rows(res)==0)
+                    MYSQL_ROW row=mysql_fetch_row(res);
+                    if(row==NULL||string(row[1])!=hp.password)
                     {
                         int filefd=open("./root/infoError.html",O_RDONLY);
                         if(filefd<0)
@@ -71,6 +148,42 @@ void task::process()
                         response(cache,filefd);
                         break;
                     }
+                    mysql_free_result(res);
+
+                    sprintf(cache,"select * from userinfo where username='%s'",
+                    hp.peer.c_str());
+                    if(mysql_query(con,cache)!=0)
+                        break;
+                    res=mysql_store_result(con);
+                    if(mysql_num_rows(res)==0)
+                    {
+                        int filefd=open("./root/sendError.html",O_RDONLY);
+                        if(filefd<0)
+                            break;
+                        sprintf(cache,"HTTP/1.1 200 OK\r\nContent-Length: %ld\r\nConnections: Close\r\n\r\n",lseek(filefd,0,SEEK_END));
+                        response(cache,filefd);
+                        break;
+                    }
+                    mysql_free_result(res);
+
+                    char atime[128]="2021-3-19";
+                    sprintf(cache,"insert into messages values('%s','%s','%s','%s')",
+                    hp.peer.c_str(),hp.data.c_str(),hp.user.c_str(),atime);
+                    if(mysql_query(con,cache)!=0)
+                    {
+                        int filefd=open("./root/Error.html",O_RDONLY);
+                        if(filefd<0)
+                            break;
+                        sprintf(cache,"HTTP/1.1 200 OK\r\nContent-Length: %ld\r\nConnections: Close\r\n\r\n",lseek(filefd,0,SEEK_END));
+                        response(cache,filefd);
+                        break;
+                    }
+                    int filefd=open("./root/sendSuccess.html",O_RDONLY);
+                    if(filefd<0)
+                        break;
+                    sprintf(cache,"HTTP/1.1 200 OK\r\nContent-Length: %ld\r\nConnections: Close\r\n\r\n",lseek(filefd,0,SEEK_END));
+                    response(cache,filefd);
+                    break;
                 }
                 else
                 {
@@ -91,7 +204,7 @@ void task::process()
 
 void task::response(char *cache,int filefd)
 {
-    int slen,len=strlen(cache);
+    int slen=0,len=strlen(cache);
     while(len>0&&(slen=send(fd,cache,len,0))>0)
     {
         len-=slen;
