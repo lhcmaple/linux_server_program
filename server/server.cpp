@@ -6,19 +6,6 @@
 
 epoll_event events[N_EVENT_NUMBER];
 
-void printerror(int error)
-{
-    switch(error)
-    {
-        case CR_COMMANDS_OUT_OF_SYNC:printf("CR_COMMANDS_OUT_OF_SYNC\n");break;
-        case CR_SERVER_GONE_ERROR:printf("CR_SERVER_GONE_ERROR\n");break;
-        case CR_SERVER_LOST:printf("CR_SERVER_LOST\n");break;
-        case CR_UNKNOWN_ERROR:printf("CR_UNKNOWN_ERROR\n");break;
-        // default:
-            // printf("123\n");
-    }
-}
-
 void task::process()
 {
     http_parser hp;
