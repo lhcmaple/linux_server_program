@@ -46,15 +46,21 @@ void *_routine(void *arg)
     {
         sem_wait(&sem);
         pthread_mutex_lock(&t->mutex);
+        // list_node *tmp=t->lst;
+        // while(tmp->next!=t->lst)
+        // {
+        //     printf("%d",*(int *)(tmp->next->context));
+        //     tmp=tmp->next;
+        // }
+        // printf("\n");
         while(!ISEMPTY(t->lst))
         {
-            if(NEXT(t->lst)->deadtime<=gettick())
-            {
-                list_node *tmp=NEXT(t->lst);
-                POP(t->lst);
-                tmp->routine(tmp->context);
-                INIT_LIST(tmp);
-            }
+            if(FRONT(t->lst)->deadtime>gettick())
+                break;
+            list_node *tmp=FRONT(t->lst);
+            POP(t->lst);
+            INIT_LIST(tmp);
+            tmp->routine(tmp->context);
         }
         pthread_mutex_unlock(&t->mutex);
     }
@@ -90,8 +96,24 @@ void timer::cancel(list_node *t)
     if(!ISEMPTY(t))//未被执行过
     {
         pthread_mutex_lock(&mutex);
-        POP(lst->prev);
+        // list_node *tmp=lst;
+        // while(tmp->next!=lst)
+        // {
+        //     printf("%d",*(int *)(tmp->next->context));
+        //     tmp=tmp->next;
+        // }
+        // printf("\n");
+        POP(t->prev);
         pthread_mutex_unlock(&mutex);
+        // printf("*****\n");
+        // INIT_LIST(t);
+        // tmp=lst;
+        // while(tmp->next!=lst)
+        // {
+        //     printf("%d",*(int *)(tmp->next->context));
+        //     tmp=tmp->next;
+        // }
+        // printf("\n");
     }
 }
 
@@ -100,3 +122,4 @@ timer *timer::gettimer()
     static timer instance;
     return &instance;
 }
+//GET / HTTP/1.1

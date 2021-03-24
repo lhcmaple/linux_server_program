@@ -7,6 +7,7 @@
 #include <memory.h>
 #include <pthread.h>
 #include <assert.h>
+#include <stdio.h>
 
 typedef unsigned long long TIMETICK;
 
@@ -31,7 +32,7 @@ struct list_node {
     lst->next = lst;\
 }
 #define ISEMPTY(lst) (lst->next == lst)
-#define PUSH(lst,node)\
+#define PUSH(lst, node)\
 {\
     node->next = lst;\
     node->prev = lst->prev;\
@@ -43,7 +44,7 @@ struct list_node {
     lst->next = lst->next->next;\
     lst->next->prev = lst;\
 }
-#define NEXT(lst) (lst->next)
+#define FRONT(lst) (lst->next)
 
 class timer{
 private:

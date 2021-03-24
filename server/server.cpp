@@ -9,6 +9,7 @@ epoll_event events[N_EVENT_NUMBER];
 
 static void close_task(void *arg)
 {
+    printf("timer arrived\n");
     shutdown(*(int *) arg,SHUT_RDWR);
     *(int *) arg=-1;
 }
@@ -284,7 +285,7 @@ void server::run(const char *ipaddr,short port)
     while(true)
     {
         int number=epoll_wait(epollfd,events,N_EVENT_NUMBER,-1);
-        assert(number>0);
+        // assert(number>0);
         for(int i=0;i<number;++i)
         {
             int sockfd=events[i].data.fd;

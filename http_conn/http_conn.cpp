@@ -10,6 +10,7 @@ HTTP_STATUS http_parser::parse(int _fd,list_node *lst)
     fd=_fd;
     start=0;
     line_start=0;
+    line_end=0;
     end=0;
     data_len=0;
     http_status=REQUEST_STATUS;
@@ -18,6 +19,11 @@ HTTP_STATUS http_parser::parse(int _fd,list_node *lst)
     uri.clear();
     version.clear();
     headers.clear();
+    user.clear();
+    password.clear();
+    type.clear();
+    peer.clear();
+    data.clear();
 
     while(http_status!=DONE_STATUS
         &&http_status!=ERROR_STATUS)
@@ -66,7 +72,11 @@ LINE_STATUS http_parser::line_parse()
             return LINE_ERROR;
         }
         int len=recv(fd,cache+end,CACHE_SIZE-end,0);
-        timer::gettimer()->cancel(lst);
+        if(start==0)
+        {
+            printf("cancel lst\n");
+            timer::gettimer()->cancel(lst);
+        }
         if(len<=0)
         {
             http_status=ERROR_STATUS;
