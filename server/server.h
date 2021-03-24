@@ -17,6 +17,7 @@
 #define N_EPOLL_SIZE 1000
 #define N_EVENT_NUMBER N_EPOLL_SIZE
 #define N_THREAD_POOL_SIZE 100
+#define N_TIMERTICK_KEEP 60
 
 class task{
 private:

@@ -3,15 +3,28 @@
  */
 
 #include "server.h"
+#include "../timer/timer.h"
 
 epoll_event events[N_EVENT_NUMBER];
+
+static void close_task(void *arg)
+{
+    shutdown(*(int *) arg,SHUT_RDWR);
+    *(int *) arg=-1;
+}
 
 void task::process()
 {
     http_parser hp;
     char cache[4096];
     MYSQL *con=NULL;
-    if(hp.parse(fd)==DONE_STATUS)
+    timer *t=timer::gettimer();
+    list_node lst,*plst=&lst;
+    INIT_LIST(plst);
+    plst->context=&fd;
+    plst->routine=&close_task;
+
+    while(hp.parse(fd,plst)==DONE_STATUS)
     {
         switch(hp.method)
         {
@@ -185,6 +198,8 @@ void task::process()
             default:
                 break;
         }
+        plst->deadtime=gettick()+N_TIMERTICK_KEEP;
+        timer::gettimer()->schedule(plst);
     }
     close(fd);
 }

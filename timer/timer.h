@@ -10,12 +10,13 @@
 
 typedef unsigned long long TIMETICK;
 
-#define SECONDSPERTICK 1
+#define SECONDSPERTICK 1UL
 
 typedef void (*time_task)(void *);
 
-class timer{
-private:
+TIMETICK gettick();
+void *_routine(void *);
+
 struct list_node {
     time_task routine;
     void *context;
@@ -42,10 +43,13 @@ struct list_node {
     lst->next = lst->next->next;\
     lst->next->prev = lst;\
 }
+#define NEXT(lst) (lst->next)
 
+class timer{
 private:
     list_node *lst;
     pthread_mutex_t mutex;
+    pthread_t tid;
 
 private:
     timer();
@@ -53,8 +57,11 @@ private:
 public:
     static timer *gettimer();
 
-    void schedule(time_task,void *,TIMETICK);
+    void schedule(list_node *);
+    void cancel(list_node *);
     ~timer();
+
+    friend void *_routine(void *);
 };
 
 #endif

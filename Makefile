@@ -1,4 +1,4 @@
-all:http_conn/http_conn.cpp mysql_pool/mysql_pool.cpp server/server.cpp main.cpp
+all:http_conn/http_conn.cpp mysql_pool/mysql_pool.cpp server/server.cpp main.cpp timer/timer.cpp
 	g++ -g $^ -o webserver -std=c++11 `mysql_config --cflags --libs` -lpthread
 
 clean:

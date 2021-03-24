@@ -1,12 +1,24 @@
 #include "timer.h"
 
-static TIMETICK tick=0;
+static TIMETICK tick = 0;
 static sem_t sem;
 static bool STOP;
 
 TIMETICK gettick()
 {
     return tick;
+}
+
+void alrm_handler(int sig)
+{
+    tick++;
+    if(!STOP)
+    {
+        sem_post(&sem);//信号量剩余亦可
+        alarm(SECONDSPERTICK);
+    }
+    else
+        sem_destroy(&sem);
 }
 
 void tick_start()
@@ -27,16 +39,26 @@ void tick_end()
     STOP=true;
 }
 
-void alrm_handler(int sig)
+void *_routine(void *arg)
 {
-    tick++;
-    if(!STOP)
+    timer *t=(timer *)arg;
+    while(!STOP)
     {
-        sem_post(&sem);//信号量剩余亦可
-        alarm(SECONDSPERTICK);
+        sem_wait(&sem);
+        pthread_mutex_lock(&t->mutex);
+        while(!ISEMPTY(t->lst))
+        {
+            if(NEXT(t->lst)->deadtime<=gettick())
+            {
+                list_node *tmp=NEXT(t->lst);
+                POP(t->lst);
+                tmp->routine(tmp->context);
+                INIT_LIST(tmp);
+            }
+        }
+        pthread_mutex_unlock(&t->mutex);
     }
-    else
-        sem_destroy(&sem);
+    return 0;
 }
 
 timer::timer()
@@ -45,24 +67,32 @@ timer::timer()
     INIT_LIST(lst);
     pthread_mutex_init(&mutex,NULL);
     tick_start();
+    pthread_create(&tid,NULL,&_routine,this);
 }
 
 timer::~timer()
 {
     tick_end();
+    pthread_join(tid,NULL);
     pthread_mutex_destroy(&mutex);
     delete lst;
 }
 
-void timer::schedule(time_task t,void *context,TIMETICK deadtime)
+void timer::schedule(list_node *t)
 {
-    list_node *tmp=new list_node;
-    tmp->routine=t;
-    tmp->context=context;
-    tmp->deadtime=deadtime;
     pthread_mutex_lock(&mutex);
-    PUSH(lst,tmp);
+    PUSH(lst,t);
     pthread_mutex_unlock(&mutex);
+}
+
+void timer::cancel(list_node *t)
+{
+    if(!ISEMPTY(t))//未被执行过
+    {
+        pthread_mutex_lock(&mutex);
+        POP(lst->prev);
+        pthread_mutex_unlock(&mutex);
+    }
 }
 
 timer *timer::gettimer()

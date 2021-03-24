@@ -4,8 +4,9 @@
 
 #include "http_conn.h"
 
-HTTP_STATUS http_parser::parse(int _fd)
+HTTP_STATUS http_parser::parse(int _fd,list_node *lst)
 {
+    this->lst=lst;
     fd=_fd;
     start=0;
     line_start=0;
@@ -65,6 +66,7 @@ LINE_STATUS http_parser::line_parse()
             return LINE_ERROR;
         }
         int len=recv(fd,cache+end,CACHE_SIZE-end,0);
+        timer::gettimer()->cancel(lst);
         if(len<=0)
         {
             http_status=ERROR_STATUS;

@@ -5,6 +5,7 @@
 #include <string>
 #include <sys/socket.h>
 #include <cstring>
+#include "../timer/timer.h"
 
 using std::string;
 using std::vector;
@@ -47,6 +48,7 @@ private:
     LINE_STATUS line_status;
     int fd;
     int data_len;
+    list_node *lst;
 public:
     REQUEST_TYPE method;
     string uri;
@@ -59,7 +61,7 @@ public:
     string peer;
     string data;
 public:
-    HTTP_STATUS parse(int _fd);
+    HTTP_STATUS parse(int _fd,list_node *lst);
     LINE_STATUS line_parse();
     HTTP_STATUS request_parse();
     HTTP_STATUS header_parse();
